@@ -3,29 +3,30 @@ library;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Un widget qui affiche un cercle de progression avec animation.
+/// A customizable circular progress indicator with a small gap
+/// between the colored (progress) and background arcs.
 ///
-/// - De 0% à 99% :
-///   - Partie non colorée toujours visible.
-///   - Séparation avec arrondi aux extrémités.
-/// - À 100% :
-///   - Cercle complètement colorié.
-///   - Pas de séparation, pas d’arrondi.
+/// - Supports percentage values from 0 to 100.
+/// - Includes smooth animation when the progress changes.
+/// - Always keeps a visible background gap until it reaches 100%.
 class AccuracyCircle extends StatefulWidget {
-  /// Pourcentage de progression (0–100).
+  /// The percentage value (0 to 100).
   final int percentage;
 
-  /// Taille du cercle (largeur/hauteur).
+  /// The size (width & height) of the circle.
   final double size;
 
-  /// Largeur du trait.
+  /// The thickness of the circle's stroke.
   final double strokeWidth;
 
-  /// Couleur du cercle coloré.
+  /// The color of the progress (foreground).
   final Color progressColor;
 
-  /// Couleur du fond (partie non colorée).
+  /// The color of the remaining (background).
   final Color backgroundColor;
+
+  /// The duration of the animation when percentage changes.
+  final Duration animationDuration;
 
   const AccuracyCircle({
     super.key,
@@ -34,6 +35,7 @@ class AccuracyCircle extends StatefulWidget {
     this.strokeWidth = 6,
     this.progressColor = const Color(0xff4F378A),
     this.backgroundColor = const Color(0xffE8DEF8),
+    this.animationDuration = const Duration(milliseconds: 1500),
   });
 
   @override
@@ -44,30 +46,24 @@ class _AccuracyCircleState extends State<AccuracyCircle>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  double animatedPercent = 0;
+  double animatedProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: widget.animationDuration,
     );
 
     _animation =
-        Tween<double>(begin: 0.0, end: widget.percentage.toDouble()).animate(
+        Tween<double>(begin: 0.0, end: widget.percentage / 100).animate(
           CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
         )..addListener(() {
-          setState(() {
-            animatedPercent = _animation.value;
-          });
+          setState(() => animatedProgress = _animation.value);
         });
 
-    // Démarrer après petit délai
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) _controller.forward();
-    });
+    _controller.forward();
   }
 
   @override
@@ -82,24 +78,23 @@ class _AccuracyCircleState extends State<AccuracyCircle>
       width: widget.size,
       height: widget.size,
       child: Stack(
+        alignment: Alignment.center,
         children: [
           CustomPaint(
             size: Size(widget.size, widget.size),
-            painter: _AccuracyCirclePainter(
-              percentage: animatedPercent,
-              strokeWidth: widget.strokeWidth,
-              progressColor: widget.progressColor,
+            painter: CircularProgressPainter(
+              progress: animatedProgress,
               backgroundColor: widget.backgroundColor,
+              progressColor: widget.progressColor,
+              strokeWidth: widget.strokeWidth,
             ),
           ),
-          Center(
-            child: Text(
-              '${widget.percentage}%',
-              style: TextStyle(
-                fontSize: widget.size * 0.25,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+          Text(
+            '${widget.percentage}%',
+            style: TextStyle(
+              fontSize: widget.size * 0.25,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
             ),
           ),
         ],
@@ -108,17 +103,21 @@ class _AccuracyCircleState extends State<AccuracyCircle>
   }
 }
 
-class _AccuracyCirclePainter extends CustomPainter {
-  final double percentage;
-  final double strokeWidth;
-  final Color progressColor;
+/// Painter responsible for drawing the circular progress.
+class CircularProgressPainter extends CustomPainter {
+  final double progress;
   final Color backgroundColor;
+  final Color progressColor;
+  final double strokeWidth;
 
-  _AccuracyCirclePainter({
-    required this.percentage,
-    required this.strokeWidth,
-    required this.progressColor,
+  /// The angle gap (in degrees) between the progress arc and background arc.
+  static const double gapAngle = 12.0;
+
+  CircularProgressPainter({
+    required this.progress,
     required this.backgroundColor,
+    required this.progressColor,
+    required this.strokeWidth,
   });
 
   @override
@@ -126,45 +125,63 @@ class _AccuracyCirclePainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
 
-    // Peinture du fond
-    final backgroundPaint = Paint()
+    final bgPaint = Paint()
       ..color = backgroundColor
-      ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
-    // Peinture du progrès
-    final progressPaint = Paint()
+    final fgPaint = Paint()
       ..color = progressColor
-      ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..strokeCap = (percentage >= 100)
-          ? StrokeCap
-                .butt // bord plat quand 100%
-          : StrokeCap.round; // arrondi sinon
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
-    // Dessiner le cercle complet du fond
-    canvas.drawCircle(center, radius, backgroundPaint);
+    const startAngle = -math.pi / 2;
+    const sweepTotal = 2 * math.pi;
+    final gap = gapAngle * math.pi / 180;
 
-    if (percentage <= 0) return;
+    if (progress >= 1.0) {
+      // Full circle (100%)
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepTotal,
+        false,
+        fgPaint,
+      );
+      return;
+    }
 
-    // Garde un petit gap si < 100%
-    final adjustedPercent = (percentage >= 100)
-        ? 1.0
-        : (percentage / 100) * 0.98;
+    // Foreground progress
+    double sweepProgress = sweepTotal * progress - gap;
+    if (sweepProgress > 0) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepProgress,
+        false,
+        fgPaint,
+      );
+    }
 
-    final startAngle = -math.pi / 2;
-    final sweepAngle = 2 * math.pi * adjustedPercent;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle,
-      sweepAngle,
-      false,
-      progressPaint,
-    );
+    // Background arc
+    double sweepBg = sweepTotal * (1 - progress) - gap;
+    if (sweepBg > 0) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle + sweepTotal * progress + gap,
+        sweepBg,
+        false,
+        bgPaint,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(CircularProgressPainter old) =>
+      old.progress != progress ||
+      old.backgroundColor != backgroundColor ||
+      old.progressColor != progressColor ||
+      old.strokeWidth != strokeWidth;
 }
