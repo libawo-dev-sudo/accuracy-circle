@@ -3,12 +3,29 @@ library;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+/// A customizable circular progress indicator with a small gap
+/// between the colored (progress) and background arcs.
+///
+/// - Supports percentage values from 0 to 100.
+/// - Includes smooth animation when the progress changes.
+/// - Always keeps a visible background gap until it reaches 100%.
 class AccuracyCircle extends StatefulWidget {
+  /// The percentage value (0 to 100).
   final int percentage;
+
+  /// The size (width & height) of the circle.
   final double size;
+
+  /// The thickness of the circle's stroke.
   final double strokeWidth;
+
+  /// The color of the progress (foreground).
   final Color progressColor;
+
+  /// The color of the remaining (background).
   final Color backgroundColor;
+
+  /// The duration of the animation when percentage changes.
   final Duration animationDuration;
 
   const AccuracyCircle({
@@ -86,12 +103,14 @@ class _AccuracyCircleState extends State<AccuracyCircle>
   }
 }
 
+/// Painter responsible for drawing the circular progress.
 class CircularProgressPainter extends CustomPainter {
   final double progress;
   final Color backgroundColor;
   final Color progressColor;
   final double strokeWidth;
 
+  /// The angle gap (in degrees) between the progress arc and background arc.
   static const double gapAngle = 12.0;
 
   CircularProgressPainter({
@@ -123,6 +142,7 @@ class CircularProgressPainter extends CustomPainter {
     final gap = gapAngle * math.pi / 180;
 
     if (progress >= 1.0) {
+      // Full circle (100%)
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         startAngle,
@@ -133,6 +153,7 @@ class CircularProgressPainter extends CustomPainter {
       return;
     }
 
+    // Foreground progress
     double sweepProgress = sweepTotal * progress - gap;
     if (sweepProgress > 0) {
       canvas.drawArc(
@@ -144,7 +165,7 @@ class CircularProgressPainter extends CustomPainter {
       );
     }
 
-    // Partie background
+    // Background arc
     double sweepBg = sweepTotal * (1 - progress) - gap;
     if (sweepBg > 0) {
       canvas.drawArc(

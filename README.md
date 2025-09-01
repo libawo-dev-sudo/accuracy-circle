@@ -1,40 +1,61 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Accuracy Circle
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+A Flutter package that provides a customizable circular progress indicator with animation and a clean gap effect.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+![demo](https://user-images.githubusercontent.com/xxx/demo.gif)
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+---
 
-## Features
+## ✨ Features
+- Circular progress indicator with gap between progress & background
+- Smooth animation
+- Configurable size, stroke width, and colors
+- Always keeps a visible gap until reaching 100%
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+---
 
-## Getting started
+## 🚀 Installation
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+Add this to your `pubspec.yaml`:
 
-## Usage
+```yaml
+dependencies:
+  accuracy_circle:
+    git:
+      url: https://github.com/libawo-dev-sudo/accuracy-circle.git
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+
+
+---
+
+## 📄 `example/main.dart`
 
 ```dart
-const like = 'sample';
-```
+import 'package:flutter/material.dart';
+import 'package:accuracy_circle/accuracy_circle.dart';
 
-## Additional information
+void main() {
+  runApp(const DemoApp());
+}
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
-# accuracy-circle
+class DemoApp extends StatelessWidget {
+  const DemoApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text("Accuracy Circle Example")),
+        body: Center(
+          child: AccuracyCircle(
+            percentage: 85,
+            size: 120,
+            strokeWidth: 10,
+            progressColor: Colors.blue,
+            backgroundColor: Colors.grey.shade300,
+          ),
+        ),
+      ),
+    );
+  }
+}
